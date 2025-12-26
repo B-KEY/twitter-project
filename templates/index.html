@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>X Automation Console</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0b0f17;
+            --card: #101826;
+            --card-2: #0f1420;
+            --text: #e7edf6;
+            --muted: #9fb0c7;
+            --accent: #4fd1c5;
+            --accent-2: #f6ad55;
+            --border: #1f2b3a;
+            --success: #1fa971;
+            --error: #ef4e4e;
+            --warn: #f6ad55;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
+            color: var(--text);
+            background: radial-gradient(circle at 20% 20%, rgba(79, 209, 197, 0.12), transparent 26%),
+                        radial-gradient(circle at 80% 10%, rgba(246, 173, 85, 0.12), transparent 24%),
+                        radial-gradient(circle at 70% 80%, rgba(79, 209, 197, 0.14), transparent 28%),
+                        linear-gradient(145deg, #0b0f17, #0c111c 60%, #0a0f19);
+            min-height: 100vh;
+            padding: 32px 18px 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .shell {
+            width: min(1080px, 100%);
+            display: grid;
+            gap: 20px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            display: grid;
+            place-items: center;
+            font-weight: 700;
+            color: #0a0f19;
+            letter-spacing: -0.02em;
+            box-shadow: 0 18px 40px rgba(79, 209, 197, 0.28);
+        }
+
+        h1 { font-size: 24px; letter-spacing: -0.02em; }
+        .muted { color: var(--muted); font-size: 14px; }
+
+        .grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 24px 50px rgba(0, 0, 0, 0.32);
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+
+        label { display: block; color: var(--muted); margin-bottom: 8px; font-size: 13px; }
+
+        input[type="text"] {
+            width: 100%;
+            background: var(--card-2);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 14px;
+            font-size: 15px;
+            transition: border-color 0.18s, box-shadow 0.18s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(79, 209, 197, 0.16);
+        }
+
+        .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            color: #0a0f19;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            box-shadow: 0 14px 30px rgba(79, 209, 197, 0.32);
+        }
+
+        .btn:hover { transform: translateY(-2px); }
+        .btn:active { transform: translateY(0); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .status {
+            margin-top: 12px;
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--card-2);
+            display: none;
+            font-size: 14px;
+        }
+        .status.show { display: block; }
+        .status.success { border-color: rgba(31, 169, 113, 0.4); color: #b7f7d7; }
+        .status.error { border-color: rgba(239, 78, 78, 0.35); color: #ffc9c9; }
+        .status.running { border-color: rgba(246, 173, 85, 0.35); color: #ffe3b5; }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(79, 209, 197, 0.12);
+            color: var(--accent);
+            font-size: 12px;
+            border: 1px solid rgba(79, 209, 197, 0.3);
+        }
+
+        .spinner {
+            width: 14px;
+            height: 14px;
+            border: 3px solid rgba(255, 255, 255, 0.15);
+            border-top-color: var(--accent-2);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .output {
+            margin-top: 10px;
+            padding: 12px;
+            background: #0a111c;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            font-family: "SFMono-Regular", Consolas, Monaco, monospace;
+            font-size: 12px;
+            max-height: 260px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: #dbe7ff;
+        }
+        .output:empty { display: none; }
+
+        .log-list { display: grid; gap: 6px; }
+        .log-line {
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 10px;
+            align-items: center;
+        }
+        .chip {
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid var(--border);
+        }
+        .chip.ok { color: #b7f7d7; border-color: rgba(31,169,113,0.4); }
+        .chip.warn { color: #ffe3b5; border-color: rgba(246,173,85,0.35); }
+        .chip.err { color: #ffc9c9; border-color: rgba(239,78,78,0.4); }
+        .chip.info { color: #9fb0c7; border-color: rgba(255,255,255,0.08); }
+        .log-text { color: #dbe7ff; word-break: break-word; }
+
+        .two-col {
+            display: grid;
+            gap: 16px;
+            grid-template-columns: 1.2fr 0.8fr;
+        }
+
+        @media (max-width: 880px) {
+            .two-col { grid-template-columns: 1fr; }
+            .topbar { flex-direction: column; align-items: flex-start; }
+        }
+
+        .meta-list { display: grid; gap: 8px; margin-top: 8px; }
+        .meta-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <div class="topbar">
+            <div class="brand">
+                <div class="logo">XA</div>
+                <div>
+                    <h1>X Automation Console</h1>
+                    <div class="muted">Queue a tweet URL and watch real-time status.</div>
+                </div>
+            </div>
+            <div class="pill"><span class="dot"></span>Live device linked</div>
+        </div>
+
+        <div class="two-col">
+            <div class="card">
+                <div class="card-title">🚀 New run</div>
+                <form id="automationForm" class="grid">
+                    <div>
+                        <label for="tweetUrl">Tweet URL</label>
+                        <input
+                            type="text"
+                            id="tweetUrl"
+                            name="tweetUrl"
+                            placeholder="https://x.com/username/status/123456789"
+                            required
+                        >
+                        <div class="hint">Example: https://x.com/MrBeast/status/2004220244085322165</div>
+                    </div>
+
+                    <button type="submit" class="btn" id="submitBtn">Run automation</button>
+                    <div id="status" class="status"></div>
+                </form>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📊 Run info</div>
+                <div class="meta-list">
+                    <div class="meta-row"><span class="muted">Accounts loaded</span><span id="metaAccounts">6</span></div>
+                    <div class="meta-row"><span class="muted">WiFi ADB target</span><span id="metaWifi">192.168.0.105:35587</span></div>
+                    <div class="meta-row"><span class="muted">Last job</span><span id="metaLast">—</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">📡 Live output</div>
+            <div class="output" id="liveOutput"></div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('automationForm');
+        const statusDiv = document.getElementById('status');
+        const submitBtn = document.getElementById('submitBtn');
+        const tweetUrlInput = document.getElementById('tweetUrl');
+        const liveOutput = document.getElementById('liveOutput');
+        const metaLast = document.getElementById('metaLast');
+
+        // Keep this in sync if USERNAMES change server-side
+        document.getElementById('metaAccounts').textContent = '6';
+        document.getElementById('metaWifi').textContent = '192.168.0.105:35587';
+
+        let currentJobId = null;
+        let statusCheckInterval = null;
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const tweetUrl = tweetUrlInput.value.trim();
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Starting…';
+
+            try {
+                const response = await fetch('/api/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tweet_url: tweetUrl })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    currentJobId = data.job_id;
+                    metaLast.textContent = `Job #${data.job_id}`;
+                    showStatus('running', `<div class="spinner"></div> Automation started · Job ${data.job_id}`);
+                    statusCheckInterval = setInterval(checkJobStatus, 600);
+                    liveOutput.textContent = '';
+                } else {
+                    showStatus('error', `Error: ${data.error}`);
+                    resetForm();
+                }
+            } catch (error) {
+                showStatus('error', `Network error: ${error.message}`);
+                resetForm();
+            }
+        });
+
+        async function checkJobStatus() {
+            if (!currentJobId) return;
+
+            try {
+                const response = await fetch(`/api/status/${currentJobId}`);
+                const job = await response.json();
+
+                if (job.status === 'completed') {
+                    clearInterval(statusCheckInterval);
+                    showStatus('success', `✅ Completed · Job ${currentJobId}`);
+                    appendOutput(job.output);
+                    resetForm();
+                } else if (job.status === 'failed' || job.status === 'timeout') {
+                    clearInterval(statusCheckInterval);
+                    showStatus('error', `❌ Failed · ${job.error || 'unknown error'}`);
+                    appendOutput(job.output);
+                    resetForm();
+                } else if (job.status === 'running') {
+                    appendOutput(job.output);
+                }
+            } catch (error) {
+                console.error('Status check error:', error);
+            }
+        }
+
+        function appendOutput(text) {
+            if (!text) return;
+            const lines = text.trim().split(/\r?\n/).filter(Boolean);
+            const rendered = lines.map(renderLogLine).join('');
+            liveOutput.innerHTML = `<div class="log-list">${rendered}</div>`;
+            liveOutput.scrollTop = liveOutput.scrollHeight;
+        }
+
+        function renderLogLine(line) {
+            const lower = line.toLowerCase();
+            let tag = 'INFO';
+            let cls = 'info';
+            if (line.includes('[+]') || line.includes('[OK') || line.includes('[LIKED') || line.includes('[REPOSTED')) {
+                tag = 'OK';
+                cls = 'ok';
+            } else if (line.includes('[!]') || lower.includes('fail') || lower.includes('error')) {
+                tag = 'ERR';
+                cls = 'err';
+            } else if (lower.includes('undo') || lower.includes('already')) {
+                tag = 'NOTE';
+                cls = 'info';
+            } else if (lower.includes('trying') || lower.includes('connecting') || lower.includes('starting')) {
+                tag = 'RUN';
+                cls = 'warn';
+            }
+            return `<div class="log-line"><span class="chip ${cls}">${tag}</span><span class="log-text">${escapeHtml(line)}</span></div>`;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showStatus(type, message) {
+            statusDiv.className = `status show ${type}`;
+            statusDiv.innerHTML = message;
+        }
+
+        function resetForm() {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Run automation';
+            currentJobId = null;
+        }
+    </script>
+</body>
+</html>

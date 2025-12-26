@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  twitter-automation:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: twitter-automation
+    ports:
+      - "5000:5000"
+    volumes:
+      # Mount source code for development
+      - ./src:/app/src
+      - ./templates:/app/templates
+      - ./static:/app/static
+      - ./ui_dumps:/app/ui_dumps
+    environment:
+      - TWEET_URL=${TWEET_URL}
+      - FLASK_ENV=production
+    # Enable privileged mode and device access for ADB
+    privileged: true
+    network_mode: host
+    # Mount USB devices for ADB connection
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    command: python src/web_app.py
+    # Restart policy
+    restart: unless-stopped
