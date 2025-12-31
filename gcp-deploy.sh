@@ -90,7 +90,7 @@ deploy_cloud_run() {
         --allow-unauthenticated \
         --memory 512Mi \
         --cpu 1 \
-        --set-env-vars "FLASK_ENV=production,ANDROID_SERIAL=192.168.0.105:35587"
+        --set-env-vars "FLASK_ENV=production,ANDROID_SERIAL=192.168.0.105:5555"
     
     print_success "Cloud Run deployment complete!"
     
