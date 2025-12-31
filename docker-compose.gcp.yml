@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  twitter-automation:
+    build:
+      context: .
+      dockerfile: Dockerfile.gcp
+    container_name: twitter-automation
+    ports:
+      - "5000:5000"
+    volumes:
+      # Mount source code for development (remove in production)
+      - ./src:/app/src
+      - ./templates:/app/templates
+      - ./static:/app/static
+      - ./ui_dumps:/app/ui_dumps
+    environment:
+      # Flask configuration
+      - FLASK_ENV=production
+      - FLASK_DEBUG=0
+      
+      # Android/ADB configuration
+      - ANDROID_SERIAL=192.168.0.105:35587  # WiFi ADB target
+      - ANDROID_PIN=${ANDROID_PIN:-2055}
+      
+      # Logging
+      - PYTHONUNBUFFERED=1
+    
+    # For GCP: Compute Engine (remove privileged if using Cloud Run)
+    # privileged: true
+    # network_mode: host
+    
+    # For development/testing with local ADB:
+    # Uncomment these if running on local machine with USB ADB
+    # privileged: true
+    # devices:
+    #   - /dev/bus/usb:/dev/bus/usb
+    
+    restart: unless-stopped
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Resource limits (optional)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '1'
+    #       memory: 512M
+
+  # Optional: Cloud SQL Proxy sidecar for database (if needed in future)
+  # cloud-sql-proxy:
+  #   image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:latest
+  #   command:
+  #     - "your-project:us-central1:your-database"
+  #   environment:
+  #     - CLOUD_SQL_IAM_DATABASE_USER=true
+  #   depends_on:
+  #     - twitter-automation

@@ -5,6 +5,7 @@ import random
 import sys
 import re
 import io
+import os
 
 # Fix Windows encoding issues and enable line buffering for real-time output
 if sys.platform == 'win32':
@@ -14,15 +15,16 @@ else:
     # For non-Windows platforms, ensure unbuffered output
     sys.stdout.reconfigure(line_buffering=True)
     sys.stderr.reconfigure(line_buffering=True)
-
+ 
 # ====== YOUR USERNAMES (exact) ======
 USERNAMES = [
     "XoDave11348",
     "humbled99",
     "ghostagain567",
-    "New_nepali_",
+    "New_nepali_", 
     "NixonDave192913",
     "Thapabikey57613",
+    "london_new9",  
 ]
 
 # ====== TIMING ======
@@ -37,10 +39,10 @@ ROW_SCROLL_ATTEMPTS = 15
 # ====== WIFI FALLBACK (optional) ======
 # Set your phone's IP:port if you want WiFi fallback when USB not connected
 # Example: WIFI_IP = "192.168.1.100:5555"
-WIFI_IP = "192.168.0.105:35587"  # Set to None to disable WiFi fallback
+# Can be overridden by ANDROID_SERIAL environment variable
+WIFI_IP = os.getenv("ANDROID_SERIAL", "192.168.0.105:35946")  # Read from env first, then default
 
 # ====== DEVICE PIN (for auto-unlock) ======
-import os
 DEVICE_PIN = os.getenv("ANDROID_PIN", "2055")  # Set ANDROID_PIN env var to override
 
 if len(sys.argv) < 2:
@@ -133,6 +135,18 @@ def unlock_device():
         
     except Exception as e:
         print(f"[!] Error during unlock: {e}")
+        return False
+
+def lock_device():
+    """Lock the device screen."""
+    try:
+        print("Locking device screen...")
+        d.screen_off()
+        wait(1)
+        print("[OK] Device locked successfully")
+        return True
+    except Exception as e:
+        print(f"[!] Error during lock: {e}")
         return False
 
 def human_wait():
@@ -414,6 +428,30 @@ def repost_if_needed():
 
     print("    [!] Repost option not found")
 
+def bookmark_if_needed():
+    btn = d(resourceId="com.twitter.android:id/inline_bookmark")
+    if btn.exists:
+        info = btn.info
+        if info.get("selected") or info.get("checked"):
+            print("    -> Already bookmarked")
+        else:
+            btn.click()
+            print("    [BOOKMARKED]")
+            wait(1)
+    else:
+        # Try alternative resource ID
+        btn = d(resourceId="com.twitter.android:id/bookmark_button")
+        if btn.exists:
+            info = btn.info
+            if not (info.get("selected") or info.get("checked")):
+                btn.click()
+                print("    [BOOKMARKED]")
+                wait(1)
+            else:
+                print("    -> Already bookmarked")
+        else:
+            print("    [!] Bookmark button not found")
+
 # ========== RUN ==========
 print(f"Starting automation for: {TWEET_URL}")
 print(f"Processing {len(USERNAMES)} accounts...\n")
@@ -432,8 +470,13 @@ for user in order:
     if not switch_to_account(user):
         continue
     open_tweet()
-    like_if_needed()
-    repost_if_needed()
+    actions = [like_if_needed, repost_if_needed, bookmark_if_needed]
+    random.shuffle(actions)
+    for act in actions:
+        act()
     human_wait()
 
 print("\nDONE — all accounts processed safely")
+
+# Lock the device after completing all tasks
+lock_device()

@@ -1,18 +1,41 @@
-# Automation
+# Twitter/X Automation Project
 
-Twitter/X automation using uiautomator2. This project organizes your existing script without modifying its content.
+Automated Twitter engagement system with a modern web dashboard.
 
-## Structure
-- src/working_twitter_automation.py — your original script (content unchanged)
-- scripts/run.ps1 — convenience PowerShell runner
-- tests/ — placeholder for future tests
-- ui_dumps/ — local UI dump output (ignored by git)
-- requirements.txt — Python dependencies
-- Dockerfile — Docker image configuration
-- docker-compose.yml — Docker compose setup
-- .gitignore — ignores typical Python artifacts and `ui_dumps/`
+## Features
 
-## Quick Start
+- 🎯 Multi-account Twitter automation via WiFi ADB
+- 📊 Real-time dashboard with live status updates
+- 🔒 Auto-lock device after completion
+- 🎨 Professional, mobile-responsive UI
+- 🐳 Docker-ready for easy deployment
+
+## Quick Deploy to GCP
+
+1. **SSH into your GCP instance:**
+   ```bash
+   ssh your-username@35.212.171.248
+   ```
+
+2. **Run the one-command deployment:**
+   ```bash
+   curl -sSL https://raw.githubusercontent.com/YOUR_USERNAME/twitter-automation/main/deploy-to-gcp.sh | bash
+   ```
+
+   Or manually:
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/twitter-automation.git
+   cd twitter-automation
+   bash deploy-to-gcp.sh
+   ```
+
+3. **Access your dashboard:**
+   - External: `http://35.212.171.248:5001`
+   - Internal: `http://10.138.0.2:5001`
+
+That's it! 🎉
+
+## Local Development
 
 ### Web Interface (Recommended)
 ```powershell
@@ -31,19 +54,111 @@ python src/web_app.py
 python .\src\working_twitter_automation.py "https://x.com/...."
 ```
 
-### Docker Usage
+## Configuration
+
+Set these environment variables (optional):
+
 ```bash
-# Build and run web interface with docker-compose
-docker-compose build
-docker-compose up
-
-# Access at http://localhost:5000
-
-# Or run CLI automation
-docker-compose run --rm twitter-automation python src/working_twitter_automation.py "https://x.com/..."
+export ANDROID_SERIAL="192.168.0.105:35946"  # Your WiFi ADB device
+export ANDROID_PIN="2055"                      # Device PIN
 ```
 
-**Note**: Docker setup requires USB device access for ADB connection to Android devices. On Windows, you may need to use WSL2 and USB/IP forwarding.
+## Manual Deployment (Alternative)
 
-## Optional: Runner
-Use `scripts/run.ps1` for a simpler command.
+```bash
+# Build the Docker image
+docker build -f Dockerfile.gcp -t twitter-automation:latest .
+
+# Run the container
+docker run -d \
+  --name twitter-automation \
+  --network my-network \
+  --restart unless-stopped \
+  -p 5001:5000 \
+  -e ANDROID_SERIAL=192.168.0.105:35946 \
+  -e ANDROID_PIN=2055 \
+  twitter-automation:latest
+```
+
+## Management Commands
+
+```bash
+# View logs
+docker logs -f twitter-automation
+
+# Restart
+docker restart twitter-automation
+
+# Stop
+docker stop twitter-automation
+
+# Remove
+docker rm -f twitter-automation
+```
+
+## Architecture
+
+- **Backend:** Flask (Python 3.12)
+- **Frontend:** Modern HTML/CSS/JavaScript
+- **Automation:** uiautomator2 + WiFi ADB
+- **Container:** Docker with health checks
+- **Network:** Custom bridge network (my-network)
+
+## Port Configuration
+
+- Internal: 5000 (Flask app inside container)
+- External: 5001 (Host port, mapped to avoid conflicts)
+- Won't affect existing containers (n8n:5678, image-generator:9000)
+
+## Mobile Support
+
+Dashboard is fully responsive and optimized for mobile devices with:
+- Touch-friendly interface
+- Adaptive layouts
+- Mobile-first design
+- No horizontal scrolling
+
+## Structure
+- src/working_twitter_automation.py — automation script
+- src/web_app.py — Flask web interface
+- templates/ — HTML templates
+- static/ — static assets
+- scripts/run.ps1 — PowerShell runner
+- tests/ — test files
+- ui_dumps/ — UI dump output (ignored by git)
+- requirements.txt — Python dependencies
+- Dockerfile.gcp — Docker image for GCP
+- docker-compose.yml — Docker compose setup
+- .gitignore — ignored files
+
+## Security
+
+- Non-root user in container
+- Health checks enabled
+- Auto-lock device feature
+- Environment-based configuration
+
+## Requirements
+
+- Docker installed on GCP instance
+- WiFi ADB device accessible from network
+- Python 3.12+ (containerized)
+
+## Troubleshooting
+
+**Container won't start:**
+```bash
+docker logs twitter-automation
+```
+
+**Can't access from browser:**
+- Check GCP firewall rules for port 5001
+- Verify container is running: `docker ps`
+
+**Device connection issues:**
+- Verify WiFi ADB is enabled: `adb connect 192.168.0.105:35946`
+- Check ANDROID_SERIAL environment variable
+
+## License
+
+MIT

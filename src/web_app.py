@@ -4,6 +4,9 @@ import subprocess
 import os
 import threading
 
+# Get WiFi IP from environment or use default
+WIFI_IP = os.getenv("ANDROID_SERIAL", "192.168.0.105:35946")
+
 app = Flask(__name__, template_folder='../templates', static_folder='../static')
 CORS(app)
 
@@ -26,7 +29,7 @@ def run_automation(job_id, tweet_url):
         
         # Prefer WiFi ADB device to avoid multi-device ambiguity
         env = os.environ.copy()
-        env.setdefault('ANDROID_SERIAL', '192.168.0.105:35587')
+        env.setdefault('ANDROID_SERIAL', WIFI_IP)
 
         # Start the process with streaming output
         process = subprocess.Popen(
@@ -68,7 +71,7 @@ def run_automation(job_id, tweet_url):
 @app.route('/')
 def index():
     """Render the main page."""
-    return render_template('index.html')
+    return render_template('index.html', wifi_ip=WIFI_IP)
 
 @app.route('/api/run', methods=['POST'])
 def run_automation_api():
