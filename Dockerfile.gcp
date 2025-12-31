@@ -35,7 +35,7 @@ EXPOSE 5000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/network-info').read()" || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000').read()" || exit 1
 
 # Default command - run web app
 CMD ["python", "src/web_app.py"]
