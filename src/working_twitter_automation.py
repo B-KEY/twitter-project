@@ -40,7 +40,7 @@ ROW_SCROLL_ATTEMPTS = 15
 # Set your phone's IP:port if you want WiFi fallback when USB not connected
 # Example: WIFI_IP = "192.168.1.100:5555"
 # Can be overridden by ANDROID_SERIAL environment variable
-WIFI_IP = os.getenv("ANDROID_SERIAL", "192.168.0.105:35946")  # Read from env first, then default
+WIFI_IP = os.getenv("ANDROID_SERIAL", "10.175.24.66:5555")  # ZeroTier IP for cloud connectivity
 
 # ====== DEVICE PIN (for auto-unlock) ======
 DEVICE_PIN = os.getenv("ANDROID_PIN", "2055")  # Set ANDROID_PIN env var to override

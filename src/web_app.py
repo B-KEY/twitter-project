@@ -5,7 +5,7 @@ import os
 import threading
 
 # Get WiFi IP from environment or use default
-WIFI_IP = os.getenv("ANDROID_SERIAL", "192.168.0.105:5555")
+WIFI_IP = os.getenv("ANDROID_SERIAL", "10.175.24.66:5555")  # ZeroTier IP
 
 app = Flask(__name__, template_folder='../templates', static_folder='../static')
 CORS(app)
