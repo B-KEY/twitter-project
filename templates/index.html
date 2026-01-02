@@ -247,6 +247,12 @@
             font-size: 14px;
         }
 
+        .btn.stop {
+            border-color: var(--accent-4);
+            background: linear-gradient(135deg, #f78166, #d4482d);
+            box-shadow: 0 4px 12px rgba(247, 129, 102, 0.35);
+        }
+
         .btn::before {
             content: '';
             position: absolute;
@@ -590,6 +596,7 @@
                     </div>
 
                     <button type="submit" class="btn" id="submitBtn">Run automation</button>
+                    <button type="button" class="btn stop" id="stopBtn" disabled>Stop &amp; lock</button>
                     <div id="status" class="status"></div>
                 </form>
             </div>
@@ -615,6 +622,7 @@
         const form = document.getElementById('automationForm');
         const statusDiv = document.getElementById('status');
         const submitBtn = document.getElementById('submitBtn');
+        const stopBtn = document.getElementById('stopBtn');
         const tweetUrlInput = document.getElementById('tweetUrl');
         const liveOutput = document.getElementById('liveOutput');
         const metaLast = document.getElementById('metaLast');
@@ -630,6 +638,8 @@
 
             submitBtn.disabled = true;
             submitBtn.textContent = 'Starting…';
+            stopBtn.disabled = false;
+            stopBtn.textContent = 'Stop & lock';
             currentAccount.textContent = '—';
             currentAction.textContent = '—';
 
@@ -658,6 +668,33 @@
             }
         });
 
+        stopBtn.addEventListener('click', async () => {
+            if (!currentJobId) return;
+            stopBtn.disabled = true;
+            stopBtn.textContent = 'Stopping…';
+            try {
+                const res = await fetch('/api/stop', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ job_id: currentJobId })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showStatus('error', `⏹ Stopped · ${data.message}`);
+                    clearInterval(statusCheckInterval);
+                    resetForm();
+                } else {
+                    showStatus('error', `Stop failed: ${data.error || 'unknown error'}`);
+                    stopBtn.disabled = false;
+                    stopBtn.textContent = 'Stop & lock';
+                }
+            } catch (err) {
+                showStatus('error', `Network error stopping job: ${err.message}`);
+                stopBtn.disabled = false;
+                stopBtn.textContent = 'Stop & lock';
+            }
+        });
+
         async function checkJobStatus() {
             if (!currentJobId) return;
 
@@ -668,6 +705,11 @@
                 if (job.status === 'completed') {
                     clearInterval(statusCheckInterval);
                     showStatus('success', `✅ Completed · Job ${currentJobId}`);
+                    appendOutput(job.output);
+                    resetForm();
+                } else if (job.status === 'cancelled') {
+                    clearInterval(statusCheckInterval);
+                    showStatus('error', `⏹ Stopped · Job ${currentJobId}`);
                     appendOutput(job.output);
                     resetForm();
                 } else if (job.status === 'failed' || job.status === 'timeout') {
@@ -774,6 +816,8 @@
         function resetForm() {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Run automation';
+            stopBtn.disabled = true;
+            stopBtn.textContent = 'Stop & lock';
             currentJobId = null;
         }
     </script>

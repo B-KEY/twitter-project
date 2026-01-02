@@ -3,6 +3,7 @@ from flask_cors import CORS
 import subprocess
 import os
 import threading
+import sys
 
 # Get WiFi IP from environment or use default
 WIFI_IP = os.getenv("ANDROID_SERIAL", "10.175.24.66:5555")  # ZeroTier IP
@@ -10,9 +11,26 @@ WIFI_IP = os.getenv("ANDROID_SERIAL", "10.175.24.66:5555")  # ZeroTier IP
 app = Flask(__name__, template_folder='../templates', static_folder='../static')
 CORS(app)
 
-# Store job status
+# Store job state
 jobs = {}
 job_counter = 0
+
+
+def lock_device_now():
+    """Attempt to turn the device screen off (best-effort)."""
+    env = os.environ.copy()
+    env.setdefault("ANDROID_SERIAL", WIFI_IP)
+    code = (
+        "import os, uiautomator2 as u; "
+        "dev=os.getenv('ANDROID_SERIAL'); "
+        "d=u.connect(dev) if dev else u.connect(); "
+        "d.screen_off()"
+    )
+    try:
+        subprocess.run([sys.executable, "-c", code], env=env, check=False, timeout=10)
+    except Exception:
+        # Best-effort: ignore failures
+        pass
 
 def run_automation(job_id, tweet_url):
     """Run the automation script in a separate thread with real-time output streaming."""
@@ -33,7 +51,7 @@ def run_automation(job_id, tweet_url):
 
         # Start the process with streaming output
         process = subprocess.Popen(
-            ['python', script_path, tweet_url],
+            [sys.executable, script_path, tweet_url],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
@@ -43,19 +61,26 @@ def run_automation(job_id, tweet_url):
             universal_newlines=True,
             env=env
         )
+        jobs[job_id]['process'] = process
         
         # Stream output line by line
+        cancel_event = jobs[job_id].get('cancel_event')
         for line in iter(process.stdout.readline, ''):
+            if cancel_event and cancel_event.is_set():
+                break
             if line:
-                # Append to job output in real-time
                 jobs[job_id]['output'] += line
-                # Also print to server console
                 print(f"[JOB {job_id}] {line}", end='')
         
         # Wait for process to complete
         process.wait()
         
-        if process.returncode == 0:
+        if cancel_event and cancel_event.is_set():
+            jobs[job_id]['status'] = 'cancelled'
+            jobs[job_id]['output'] += "\n[STOPPED] Job cancelled by user; locking device.\n"
+            lock_device_now()
+            print(f"\n[JOB {job_id}] ✗ Cancelled by user\n")
+        elif process.returncode == 0:
             jobs[job_id]['status'] = 'completed'
             print(f"\n[JOB {job_id}] ✓ Completed successfully\n")
         else:
@@ -95,7 +120,9 @@ def run_automation_api():
         'status': 'queued',
         'tweet_url': tweet_url,
         'output': '',
-        'error': ''
+        'error': '',
+        'process': None,
+        'cancel_event': threading.Event()
     }
     
     # Start automation in a background thread
@@ -113,16 +140,52 @@ def run_automation_api():
 def get_job_status(job_id):
     """Get the status of a specific job."""
     job = jobs.get(job_id)
-    
     if not job:
         return jsonify({'error': 'Job not found'}), 404
-    
-    return jsonify(job)
+
+    sanitized = {k: v for k, v in job.items() if k not in ['process', 'cancel_event']}
+    return jsonify(sanitized)
 
 @app.route('/api/jobs')
 def list_jobs():
     """List all jobs."""
-    return jsonify(jobs)
+    sanitized = {
+        jid: {k: v for k, v in job.items() if k not in ['process', 'cancel_event']}
+        for jid, job in jobs.items()
+    }
+    return jsonify(sanitized)
+
+
+@app.route('/api/stop', methods=['POST'])
+def stop_job():
+    """Stop a running job and lock the device."""
+    data = request.json or {}
+    job_id = data.get('job_id')
+    if not job_id:
+        return jsonify({'error': 'job_id is required'}), 400
+
+    job = jobs.get(job_id)
+    if not job:
+        return jsonify({'error': 'Job not found'}), 404
+
+    if job.get('status') not in ['running', 'queued']:
+        return jsonify({'error': f"Job is {job.get('status')}, cannot stop"}), 400
+
+    cancel_event = job.get('cancel_event')
+    if cancel_event:
+        cancel_event.set()
+
+    proc = job.get('process')
+    if proc and proc.poll() is None:
+        try:
+            proc.terminate()
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+    job['status'] = 'cancelled'
+    job['output'] += "\n[STOPPED] Job cancelled by user; locking device.\n"
+    lock_device_now()
+    return jsonify({'success': True, 'message': 'Job cancelled and device locked', 'job_id': job_id})
 
 if __name__ == '__main__':
     # Run on all interfaces so it can be accessed from network
